@@ -10,7 +10,7 @@ git clone https://github.com/Liang-yc/ECUSTFD-resized-.git ../
 
 ## Scripts
 
-### Running Apple Test Image on Custom Object Detector
+### Running Test Images on Pre-Trained Object Detectors
 
 Use and configure this script to run a sample, pre-trained object detection model on test images.
 
