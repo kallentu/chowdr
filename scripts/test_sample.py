@@ -19,7 +19,6 @@ from object_detection.utils import visualization_utils as viz_utils
 from object_detection.utils import ops as utils_ops
 
 tf.get_logger().setLevel('ERROR')
-print("Hi!")
 
 def load_image_into_numpy_array(path):
   """Load an image from file into a numpy array.
@@ -102,7 +101,7 @@ IMAGES_FOR_TEST = {
   'Phones' : 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Biblioteca_Maim%C3%B3nides%2C_Campus_Universitario_de_Rabanales_007.jpg/1024px-Biblioteca_Maim%C3%B3nides%2C_Campus_Universitario_de_Rabanales_007.jpg',
   # Source: https://commons.wikimedia.org/wiki/File:The_smaller_British_birds_(8053836633).jpg
   'Birds' : 'https://upload.wikimedia.org/wikipedia/commons/0/09/The_smaller_British_birds_%288053836633%29.jpg',
-  'my_pic' : '../ECUSTFD-resized-/JPEGImages/apple001S(1).JPG'
+  'Apple' : '../ECUSTFD-resized-/JPEGImages/apple001S(1).JPG'
 }
 
 COCO17_HUMAN_POSE_KEYPOINTS = [(0, 1),
@@ -126,7 +125,7 @@ COCO17_HUMAN_POSE_KEYPOINTS = [(0, 1),
 
 # %matplotlib inline
 
-PATH_TO_LABELS = './models/research/object_detection/data/mscoco_label_map.pbtxt'
+PATH_TO_LABELS = 'models/research/object_detection/data/mscoco_label_map.pbtxt'
 category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
 
 model_display_name = 'Faster R-CNN Inception ResNet V2 640x640' # @param ['CenterNet HourGlass104 512x512','CenterNet HourGlass104 Keypoints 512x512','CenterNet HourGlass104 1024x1024','CenterNet HourGlass104 Keypoints 1024x1024','CenterNet Resnet50 V1 FPN 512x512','CenterNet Resnet50 V1 FPN Keypoints 512x512','CenterNet Resnet101 V1 FPN 512x512','CenterNet Resnet50 V2 512x512','CenterNet Resnet50 V2 Keypoints 512x512','EfficientDet D0 512x512','EfficientDet D1 640x640','EfficientDet D2 768x768','EfficientDet D3 896x896','EfficientDet D4 1024x1024','EfficientDet D5 1280x1280','EfficientDet D6 1280x1280','EfficientDet D7 1536x1536','SSD MobileNet v2 320x320','SSD MobileNet V1 FPN 640x640','SSD MobileNet V2 FPNLite 320x320','SSD MobileNet V2 FPNLite 640x640','SSD ResNet50 V1 FPN 640x640 (RetinaNet50)','SSD ResNet50 V1 FPN 1024x1024 (RetinaNet50)','SSD ResNet101 V1 FPN 640x640 (RetinaNet101)','SSD ResNet101 V1 FPN 1024x1024 (RetinaNet101)','SSD ResNet152 V1 FPN 640x640 (RetinaNet152)','SSD ResNet152 V1 FPN 1024x1024 (RetinaNet152)','Faster R-CNN ResNet50 V1 640x640','Faster R-CNN ResNet50 V1 1024x1024','Faster R-CNN ResNet50 V1 800x1333','Faster R-CNN ResNet101 V1 640x640','Faster R-CNN ResNet101 V1 1024x1024','Faster R-CNN ResNet101 V1 800x1333','Faster R-CNN ResNet152 V1 640x640','Faster R-CNN ResNet152 V1 1024x1024','Faster R-CNN ResNet152 V1 800x1333','Faster R-CNN Inception ResNet V2 640x640','Faster R-CNN Inception ResNet V2 1024x1024','Mask R-CNN Inception ResNet V2 1024x1024']
@@ -139,7 +138,7 @@ print('loading model...')
 hub_model = hub.load(model_handle)
 print('model loaded!')
 
-selected_image = 'my_pic' # @param ['Beach', 'Dogs', 'Naxos Taverna', 'Beatles', 'Phones', 'Birds']
+selected_image = 'Apple' # @param ['Beach', 'Dogs', 'Naxos Taverna', 'Beatles', 'Phones', 'Birds']
 flip_image_horizontally = False 
 convert_image_to_grayscale = False 
 
@@ -157,7 +156,7 @@ if(convert_image_to_grayscale):
 
 plt.figure(figsize=(24,32))
 plt.imshow(image_np[0])
-plt.savefig("mygraph.png") #using instead of show since I couldn't get show to work
+plt.savefig("data/test_sample_original.png") #using instead of show since I couldn't get show to work
 
 # running inference
 results = hub_model(image_np)
@@ -192,4 +191,4 @@ viz_utils.visualize_boxes_and_labels_on_image_array(
 
 plt.figure(figsize=(24,32))
 plt.imshow(image_np_with_detections[0])
-plt.savefig("mygraph2.png")
+plt.savefig("data/test_sample_result.png")
