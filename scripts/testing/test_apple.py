@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import io
 import scipy.misc
 import numpy as np
+import six
 from six import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 from six.moves.urllib.request import urlopen
@@ -128,6 +129,63 @@ def visualize_result(image_np, results, output_file):
   plt.imshow(image_np_with_detections[0])
   plt.savefig('../data/' + output_file)
 
+
+def get_bounding_boxes(results):
+  category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
+
+  # different object detection models have additional results
+  # all of them are explained in the documentation
+  result = {key:value.numpy() for key,value in results.items()}
+  print(result.keys())
+
+  # See what the object is
+  print('detection_boxes')
+  result['detection_boxes'][0].shape
+  boxes = result['detection_boxes'][0]
+  scores = result['detection_scores'][0]
+  classes = result['detection_classes'][0]
+  min_score_thresh = 0.5
+  
+  # Get the boxes and box labels
+  boxes_list = []
+  box_to_label = {}
+
+  for i in range(boxes.shape[0]):
+    if scores is None or scores[i] > min_score_thresh:
+      box = tuple(boxes[i].tolist())  
+      print("box", i, ":", box)
+      boxes_list.append(box)
+
+      display_str = ''
+      if classes[i] in six.viewkeys(category_index):
+        class_name = category_index[classes[i]]['name']
+      else:
+        class_name = 'N/A'
+      display_str = str(class_name)
+      box_to_label[box] = display_str
+  
+  return boxes, box_to_label
+  
+# given type of object and dimensions, compute the volume (cylinder, spherical, ooblong) 
+# return a float value
+# def compute_volume():
+
+# take in results from inference
+# return a float value
+# def compute_calorie():
+  # get the bounding box for all detected objects
+  
+  # pick out the coin and food object with the highest detection %s
+
+  # compute the scaling factor with the dimensions of the coin and the image
+
+  # use scaling factor to determine the dimensions of the food
+
+  # compute volume with the dimensions of the food and type of food
+
+  # compute calories given volume and type of food
+
+
 ## AI Class
 # Loads the model and performs inference from the model
 class CuteAI:
@@ -153,5 +211,10 @@ image_np = get_image_np(image_name)
 # Perform inference
 inference_results = ai.run_inference(image_np)
 
+# Test get bounding boxes
+# a, b = get_bounding_boxes(inference_results)
+
+print(a)
+print(b)
 # Visualize results
 visualize_result(image_np, inference_results, image_name + '-detected.png')
