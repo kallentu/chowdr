@@ -1,6 +1,7 @@
 import os
 import pathlib
 import json
+import argparse
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -20,22 +21,19 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as viz_utils
 from object_detection.utils import ops as utils_ops
 
+from calorie_conversion import compute_calories
+
+
 # Set up tensorflow
 tf.get_logger().setLevel('ERROR')
 
 # Global declarations
 TRAINED_MODELS = {
-  'ssd-640' : "../workspace/training_demo/exported-models/bestest_boi_so_far/saved_model/"
-}
-
-# In JSON format
-IMAGES_FOR_TEST = {
-  'apple' : '../data/apple001S(1).JPG',
-  'pear' : '../data/pear(1).JPG',
+  'ssd-640' : "workspace/training_demo/exported-models/bestest_boi_so_far/saved_model/"
 }
 
 # Labels for image objects
-PATH_TO_LABELS = '../workspace/training_demo/exported-models/bestest_boi_so_far/label_map.pbtxt'
+PATH_TO_LABELS = 'workspace/training_demo/exported-models/bestest_boi_so_far/label_map.pbtxt'
 
 COCO17_HUMAN_POSE_KEYPOINTS = [(0, 1),
  (0, 2),
@@ -56,8 +54,23 @@ COCO17_HUMAN_POSE_KEYPOINTS = [(0, 1),
  (12, 14),
  (14, 16)]
 
+category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
 
-## Functions
+## AI Class
+# Loads the model and performs inference from the model
+class ObjectDetectorAI:
+  def __init__(self, selected_model): # @param ['ssd-640']
+    global TRAINED_MODELS
+
+    model_path = TRAINED_MODELS[selected_model]
+    print('Loading model...')
+    self.hub_model = tf.saved_model.load(model_path)
+    print('Model loaded!')
+
+  def run_inference(self, image_np):
+    return self.hub_model(image_np)
+
+
 def load_image_into_numpy_array(path):
   """Load an image from file into a numpy array.
 
@@ -87,11 +100,7 @@ def load_image_into_numpy_array(path):
   (im_width, im_height) = image.size
   print("Resized Width {}  Height {}".format(im_width, im_height))
   return np.array(image.getdata()).reshape(
-      (1, im_height, im_width, 3)).astype(np.uint8)
-
-def get_image_np(selected_image): # @param ['Apple']
-  image_path = IMAGES_FOR_TEST[selected_image]
-  return load_image_into_numpy_array(image_path)
+      (1, im_height, im_width, 3)).astype(np.uint8), im_width, im_height
 
 def visualize_result(image_np, results, output_file):
   image_np_with_detections = image_np.copy()
@@ -110,7 +119,7 @@ def visualize_result(image_np, results, output_file):
   if 'detection_keypoints' in result:
     keypoints = result['detection_keypoints'][0]
     keypoint_scores = result['detection_keypoint_scores'][0]
-
+  
   viz_utils.visualize_boxes_and_labels_on_image_array(
         image_np_with_detections[0],
         result['detection_boxes'][0],
@@ -127,12 +136,9 @@ def visualize_result(image_np, results, output_file):
 
   plt.figure(figsize=(24,32))
   plt.imshow(image_np_with_detections[0])
-  plt.savefig('../data/' + output_file)
-
+  plt.savefig(output_file)
 
 def get_bounding_boxes(results):
-  category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
-
   # different object detection models have additional results
   # all of them are explained in the documentation
   result = {key:value.numpy() for key,value in results.items()}
@@ -147,14 +153,14 @@ def get_bounding_boxes(results):
   min_score_thresh = 0.5
   
   # Get the boxes and box labels
-  boxes_list = []
+  box_list = []
   box_to_label = {}
 
   for i in range(boxes.shape[0]):
     if scores is None or scores[i] > min_score_thresh:
       box = tuple(boxes[i].tolist())  
       print("box", i, ":", box)
-      boxes_list.append(box)
+      box_list.append(box)
 
       display_str = ''
       if classes[i] in six.viewkeys(category_index):
@@ -164,57 +170,46 @@ def get_bounding_boxes(results):
       display_str = str(class_name)
       box_to_label[box] = display_str
   
-  return boxes, box_to_label
-  
-# given type of object and dimensions, compute the volume (cylinder, spherical, ooblong) 
-# return a float value
-# def compute_volume():
+  return box_list, box_to_label
 
-# take in results from inference
-# return a float value
-# def compute_calorie():
-  # get the bounding box for all detected objects
-  
-  # pick out the coin and food object with the highest detection %s
+def load_ai():
+  return ObjectDetectorAI('ssd-640')
 
-  # compute the scaling factor with the dimensions of the coin and the image
+def get_calories(ai, image_path):
+  image_np, width, height = load_image_into_numpy_array(image_path)
 
-  # use scaling factor to determine the dimensions of the food
+  inference_results = ai.run_inference(image_np)
 
-  # compute volume with the dimensions of the food and type of food
+  boxes_list, box_to_label = get_bounding_boxes(inference_results)
 
-  # compute calories given volume and type of food
+  visualize_result(image_np, inference_results, image_path + '-detected.png')
 
+  return compute_calories(boxes_list, box_to_label, width, height)
 
-## AI Class
-# Loads the model and performs inference from the model
-class CuteAI:
-  def __init__(self, selected_model): # @param ['ssd-640']
-    global TRAINED_MODELS
+def main():
+  # Parse input
+  parser = argparse.ArgumentParser(description="Run inference or compute calories.",
+                                   formatter_class=argparse.RawTextHelpFormatter)
+  parser.add_argument(
+    '-i', '--imagePath',
+    help='Name of the image being used.',
+    type=str,
+    default=os.getcwd()
+  )
+  args = parser.parse_args()
 
-    model_path = TRAINED_MODELS[selected_model]
-    print('Loading model...')
-    self.hub_model = tf.saved_model.load(model_path)
-    print('Model loaded!')
+  # Get image path, set default
+  image_path = 'data/apple001S(1).jpg' 
 
-  def run_inference(self, image_np):
-    return self.hub_model(image_np)
+  if args.imagePath:
+    image_path = args.imagePath
+    
+  # Load model
+  ai = load_ai()
 
+  # Perform inference, compute calories and visualize the result
+  food_label, calories = get_calories(ai, image_path)
+  print(f'Food: {food_label}, Calories: {calories}')
 
-# ------------------------------ Running Code ------------------------------ #
-# Load model 
-ai = CuteAI('ssd-640')
-
-image_name = 'apple' # @param ['apple', 'pear']
-image_np = get_image_np(image_name)
-
-# Perform inference
-inference_results = ai.run_inference(image_np)
-
-# Test get bounding boxes
-# a, b = get_bounding_boxes(inference_results)
-
-print(a)
-print(b)
-# Visualize results
-visualize_result(image_np, inference_results, image_name + '-detected.png')
+if __name__ == '__main__':
+  main()
