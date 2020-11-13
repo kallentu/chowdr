@@ -31,7 +31,7 @@ def iterate_dir(source, dest, k, copy_xml):
 
     # Shuffle images first so we get a good test.
     images = [f for f in os.listdir(source)
-              if re.search(r'([a-zA-Z0-9\s_\\.\-\(\):])+(.JPG|.jpeg|.png)$', f)]
+              if re.search(r'([a-zA-Z0-9\s_\\.\-\(\):])+(.JPG|.jpg|.jpeg|.png)$', f)]
     random.shuffle(images)
 
     if images == None or len(images) == 0:
@@ -47,12 +47,12 @@ def iterate_dir(source, dest, k, copy_xml):
     # Count keeps track of which fold we are in.
     kfold_count = 0
     for train_index, test_index in kf.split(np_images):
-      print("Current fold: {}".format(kfold_count))
-      print("Size of training data: {} Size of testing data: {}".format(train_index.size, test_index.size))
+      print(f"Current fold: {kfold_count}")
+      print(f"Size of training data: {train_index.size} Size of testing data: {test_index.size}")
 
       # Make directories.
-      train_dir = os.path.join(dest, 'train_{}fold'.format(kfold_count))
-      test_dir = os.path.join(dest, 'test_{}fold'.format(kfold_count))
+      train_dir = os.path.join(dest, f'train_{kfold_count}fold')
+      test_dir = os.path.join(dest, f'test_{kfold_count}fold')
 
       if not os.path.exists(train_dir):
         os.makedirs(train_dir)
@@ -127,7 +127,7 @@ def main():
 
     # Seed random
     random.seed(args.seed)
-    print("Random seed is {}.".format(args.seed))
+    print(f"Random seed is {args.seed}.")
 
     # Now we are ready to start the iteration
     iterate_dir(args.imageDir, args.outputDir, args.kfolds, args.xml)
