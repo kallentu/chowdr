@@ -29,9 +29,24 @@ FOOD_LABELS = {
 # value can be 'ellipsoid', 'column', 'irregular'
 FOOD_SHAPE = {
   'apple' : 'ellipsoid',
-  'pear' : 'ellipsoid',
-  'banana' : 'column',
-  'bread' : 'irregular',
+  'banana' : 'irregular',
+  'bread' : 'column',
+  'bun' : 'irregular',
+  'doughnut' : 'irregular',
+  'egg' : 'ellipsoid',
+  'fried dough twist' : 'irregular',
+  'grape' : 'column',
+  'lemon' : 'ellipsoid',
+  'litchi' : 'irregular',
+  'mango' : 'irregular',
+  'mooncake' : 'column',
+  'orange' : 'ellipsoid',
+  'peach' : 'ellipsoid',
+  'pear' : 'irregular',
+  'plum' : 'ellipsoid',
+  'qiwi' : 'ellipsoid',
+  'sachima' : 'column',
+  'tomato' : 'ellipsoid'
 }
 
 # TODO: Populate these values with empirical data that we come up with

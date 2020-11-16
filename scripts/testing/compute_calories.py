@@ -23,7 +23,6 @@ from object_detection.utils import ops as utils_ops
 
 from calorie_conversion import compute_calories, compute_volume_with_grabcut, FOOD_LABELS
 
-
 # Set up tensorflow
 tf.get_logger().setLevel('ERROR')
 
@@ -33,7 +32,7 @@ TRAINED_MODELS = {
 }
 
 # Labels for image objects
-PATH_TO_LABELS = 'workspace/training_demo/exported-models/faster_fold1_boi/label_map.pbtxt'
+PATH_TO_LABELS = 'workspace/training_demo/annotations/label_map.pbtxt'
 
 COCO17_HUMAN_POSE_KEYPOINTS = [(0, 1),
  (0, 2),
@@ -167,12 +166,13 @@ def get_bounding_boxes(results, confidence_threshold = 0.5):
   
   return box_list, box_to_label
 
-def get_calories(ai, image_path):
+# TODO: Fix this
+def get_calories(ai, s_image_path, t_image_path):
   # Load numpy array
   image_np, width, height = load_image_into_numpy_array(image_path)
 
   # Run inference
-  inference_results = ai.run_inference(image_np)
+  inference_results = ai.run_inference(s_image_path)
 
   boxes_list, box_to_label = get_bounding_boxes(inference_results, 0.4)
 
@@ -205,21 +205,29 @@ def main():
   parser = argparse.ArgumentParser(description="Run inference or compute calories.",
                                    formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument(
-    '-i', '--imagePath',
-    help='Name of the image being used.',
+    '-s', '--sideViewImagePath',
+    help='Path to image side view.',
     type=str,
     default='data/apple001S(1).jpg' 
   )
+  parser.add_argument(
+    '-t', '--topViewImagePath',
+    help='Path to image top view.',
+    type=str,
+    default='data/apple001T(1).jpg' 
+  )
+
   args = parser.parse_args()
 
-  if args.imagePath:
-    image_path = args.imagePath
+  if args.sideViewImagePath && args.topViewImagePath:
+    s_image_path = args.imagePath
+    t_image_path = args.imagePath
   
   # Load model
   ai = ObjectDetectorAI('ssd-640')
 
   # Perform inference, compute calories and visualize the result
-  food_calories_list = get_calories(ai, image_path)
+  food_calories_list = get_calories(ai, s_image_path, t_image_path)
   print(f'Results: {food_calories_list}')
 
 if __name__ == '__main__':
