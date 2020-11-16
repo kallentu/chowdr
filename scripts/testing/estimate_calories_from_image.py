@@ -7,6 +7,28 @@ import math
 
 COIN_WIDTH = 2.5
 
+FOOD_LABELS = {
+    'apple',
+    'banana',
+    'bread',
+    'bun',
+    'doughnut'
+    'egg'
+    'fried dough twist',
+    'grape',
+    'lemon',
+    'litchi',
+    'mango',
+    'mooncake',
+    'orange',
+    'peach',
+    'pear',
+    'plum',
+    'qiwi',
+    'sachima',
+    'tomato',
+}
+
 # value can be 'ellipsoid', 'column', 'irregular'
 FOOD_SHAPE = {
   'apple' : 'ellipsoid',
@@ -87,7 +109,6 @@ def get_dimensions(bounding_box, width, height):
 # Side view: width, height of coin
 # Top view: width, height of coin
 
-
 # Grabcut pixel counts
 # - Sideview from the bottom layer to the top layer
 # - Topview from the bottom layer to the top layer s_T
@@ -101,9 +122,8 @@ def np_to_cv(image_np):
   imgcv = np.asarray(img)[:,:,::-1].copy()
   imgcv = cv.cvtColor(np.asarray(img), cv.COLOR_RGB2BGR)
 
-  # output cv
+  # return cv version
   # cv.imwrite('cv_img.png', imgcv)
-  # cv.imshow("image", imgcv)
   return imgcv
 
 # Uses grabcut to get an array of foreground pixels for the given numpy image array
@@ -279,18 +299,11 @@ def test():
         (1, im_height, im_width, 3)).astype(np.uint8)
 
   from matplotlib.image import imread
+  
   # create numpy image
   w, h = 800, 600
-  # side_image_np = np.zeros((h, w, 3), dtype=np.uint8)
-  # side_image_np[0:50, 0:50] = [255, 0, 0] # red patch in upper left
-  
-  # top_image_np = np.zeros((h, w, 3), dtype=np.uint8)
-  # top_image_np[50:99, 50:99] = [255, 0, 0] # red patch in bottom right
-
   side_image_np = load_image_into_numpy_array('scripts/testing/testdata/grabcut-result-apple.png', w, h)[0]
   top_image_np = load_image_into_numpy_array('scripts/testing/testdata/grabcut-result-apple.png', w, h)[0]
-
-
 
   food_side_bounding_box = (0.1, 0.1, 0.6, 0.6)
   food_top_bounding_box = (0.1, 0.1, 0.9, 0.9)
@@ -303,5 +316,3 @@ def test():
   # get_foreground_pixels(side_image_np[0], (10,10,60,60))
   # compute_volume_with_grabcut(side_image_np, top_image_np, (300, 200, 200, 200), (300, 200, 200, 200), 5, 5, 'apple')
   compute_calories(side_image_np, top_image_np, food_side_bounding_box, food_top_bounding_box, coin_side_bounding_box, coin_top_bounding_box, food_label)
-
-test()

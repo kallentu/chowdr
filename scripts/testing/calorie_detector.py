@@ -21,7 +21,7 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as viz_utils
 from object_detection.utils import ops as utils_ops
 
-from calorie_conversion import compute_calories, compute_volume_with_grabcut, FOOD_LABELS
+from estimate_calories_from_image import compute_calories, FOOD_LABELS
 
 # Set up tensorflow
 tf.get_logger().setLevel('ERROR')
@@ -98,7 +98,7 @@ def load_image_into_numpy_array(path):
   (im_width, im_height) = image.size
   print("Resized Width {}  Height {}".format(im_width, im_height))
   return np.array(image.getdata()).reshape(
-      (1, im_height, im_width, 3)).astype(np.uint8), im_width, im_height
+      (1, im_height, im_width, 3)).astype(np.uint8)
 
 def visualize_result(image_np, results, output_file):
   image_np_with_detections = image_np.copy()
@@ -166,37 +166,68 @@ def get_bounding_boxes(results, confidence_threshold = 0.5):
   
   return box_list, box_to_label
 
-# TODO: Fix this
-def get_calories(ai, s_image_path, t_image_path):
-  # Load numpy array
-  image_np, width, height = load_image_into_numpy_array(image_path)
+def get_calories(ai, image_path_s, image_path_t):
+  # Load numpy arrays
+  image_np_s = load_image_into_numpy_array(image_path_s)
+  image_np_t = load_image_into_numpy_array(image_path_t)
 
   # Run inference
-  inference_results = ai.run_inference(s_image_path)
+  inference_results_s = ai.run_inference(image_np_s)
+  inference_results_t = ai.run_inference(image_np_t)
 
-  boxes_list, box_to_label = get_bounding_boxes(inference_results, 0.4)
+  bounding_boxes_s, box_to_label_s = get_bounding_boxes(inference_results_s)
+  bounding_boxes_t, box_to_label_t = get_bounding_boxes(inference_results_t)
 
-  visualize_result(image_np, inference_results, image_path + '-detected.png')
+  visualize_result(image_np_s, inference_results_s, image_path_s + '-detected.png')
+  visualize_result(image_np_t, inference_results_t, image_path_t + '-detected.png')
 
   food_calorie_list = {}
-  coin_box = None
+  coin_bounding_box_s = None
+  coin_bounding_box_t = None
+  label_to_bounding_box_s = {}
+  label_to_bounding_box_t = {}
 
-  for box in boxes_list:
-    if box_to_label[box] == 'coin':
-      coin_box = box
+  # Get the bounding box for coins
+  for box in bounding_boxes_s:
+    if box_to_label_s[box] == 'coin':
+      coin_bounding_box_s = box
+      box_to_label_s.pop(box)
+      bounding_boxes_s.remove(box)
       break
+
+  for box in bounding_boxes_t:
+    if box_to_label_t[box] == 'coin':
+      coin_bounding_box_t = box
+      box_to_label_t.pop(box)
+      bounding_boxes_t.remove(box)
+      break
+    
+  if not coin_bounding_box_s or not coin_bounding_box_t:
+    print('Could not detect the coin')
+    return food_calorie_list
+
+  # Can't handle multiple of the same object in one screen
+  # Load each list of bounding boxes and map to labels
+  for box in bounding_boxes_s:
+    label = box_to_label_s[box]
+    label_to_bounding_box_s[label] = box
   
-  if coin_box:
-    for box in boxes_list:
-      food_label = box_to_label[box]
-      if food_label in FOOD_LABELS:
-        food_box = box
-        
-        if food_box:
-          print(f'food label: {food_label}, food box: {food_box}')
-          food_calorie_list[food_label] = compute_calories(image_path, coin_box, food_box, food_label)
-  else:
-    print('<<<<<   o;   No coin detected in the photo   ;o   >>>>>')
+  for box in bounding_boxes_t:
+    label = box_to_label_t[box]
+    label_to_bounding_box_t[label] = box
+
+  # If food is contained in both image views, compute the calories
+  for label in label_to_bounding_box_s:
+    if label in label_to_bounding_box_t:
+      food_bounding_box_s = label_to_bounding_box_s[label]
+      food_bounding_box_t = label_to_bounding_box_t[label]
+      food_calorie_list[label] = compute_calories(image_np_s[0], 
+                                                  image_np_t[0], 
+                                                  food_bounding_box_s, 
+                                                  food_bounding_box_t, 
+                                                  coin_bounding_box_s, 
+                                                  coin_bounding_box_t, 
+                                                  label)
   
   return food_calorie_list
 
@@ -219,15 +250,14 @@ def main():
 
   args = parser.parse_args()
 
-  if args.sideViewImagePath && args.topViewImagePath:
-    s_image_path = args.imagePath
-    t_image_path = args.imagePath
+  image_path_s = args.sideViewImagePath
+  image_path_t = args.topViewImagePath
   
   # Load model
   ai = ObjectDetectorAI('ssd-640')
 
   # Perform inference, compute calories and visualize the result
-  food_calories_list = get_calories(ai, s_image_path, t_image_path)
+  food_calories_list = get_calories(ai, image_path_s, image_path_t)
   print(f'Results: {food_calories_list}')
 
 if __name__ == '__main__':
