@@ -134,10 +134,18 @@ Use and configure this script to run a sample, pre-trained object detection mode
 python3 scripts/testing/test_sample.py
 ```
 
-### Running Apple Test Image on Custom Object Detector
+### Running The Calorie Detector With A Test Image
 
-Use and configure this script to run a custom object detection model on the test image `apple001S(1).JPG` in the ECUSTFD dataset.
+Use this script to use our custom object detection model on a specified pair of test images. -s defaults to `data/apple001S(1).JPG` and -t defaults to `data/apple001T(1).JPG`.
 
+Specify two input images:
 ```bash
-python3 scripts/testing/test_apple.py
+python3 scripts/testing/calorie_detector.py -s <side view image path> -t <top view image path>
+```
+
+Use `python3 scripts/testing/calorie_detector.py -h` for parameter usage.
+
+Example:
+```bash
+python3 scripts/testing/calorie_detector.py -s "data/apple001S(1).JPG" -t "data/apple001T(1).JPG"
 ```
