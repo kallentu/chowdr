@@ -39,7 +39,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=~/<key-name>.json
 
 Now you are ready to train/test using GCP. Look at the scripts below to help you.
 
-## Scripts
+## Pre-processing Scripts
 
 All scripts are run from the main directory.
 
@@ -59,6 +59,33 @@ Example:
 python3 scripts/preprocessing/kfold_partition_dataset.py -i ../ECUSTFD-resized-/JPEGImages/ -o workspace/ -k 5
 ```
 
+### Create TensorFlow Records
+
+Converts XML files to TFRecord files in preparation for training.
+
+Use `python3 scripts/preprocessing/generate_tfrecord.py -h` for parameter usage.
+
+Example:
+
+```bash
+python scripts/preprocessing/generate_tfrecord.py -x workspace/train_0fold -l workspace/train_0fold/annotations/label_map.pbtxt -o workspace/train_0fold/annotations/train0.record
+```
+
+## Training Scripts
+
+All scripts are run from the main directory.
+
+### Training a Custom Model
+
+Initiates a new custom object detection training job for the base-model in `model_dir`.
+
+Use `python3 scripts/training/create_run_model.py -h` for parameter usage.
+
+Example:
+```bash
+python3 scripts/training/create_run_model.py --model_dir=models/faster_rcnn_0 --pipeline_config_path=models/faster_rcnn_0/pipeline.config
+```
+
 ### Running test training on GCP
 
 Follow the instructions above to set up GCP, then run this script from the main directory.
@@ -72,12 +99,40 @@ Change the `GCP_BUCKET` variable in the script to match your bucket name if it i
 python3 scripts/gcp/test_gcp_train.py
 ```
 
+## Testing Scripts
+
+All scripts are run from the main directory.
+
+### Running an Evaluation on Trained Model
+Evaluates how well the model performs in detecting objects in the test dataset that is configured in `pipeline.config`.
+
+Use `python3 scripts/training/create_run_model.py -h` for parameter usage.
+
+Example:
+```bash
+python3 scripts/training/create_run_model.py --model_dir=models/faster_rcnn_0 --pipeline_config_path=models/faster_rcnn_0/pipeline.config
+```
+
+### Export an Object Detection Model for Inference.
+
+Prepares an object detection tensorflow graph for inference using model
+configuration and a trained checkpoint. Outputs associated checkpoint files,
+a SavedModel, and a copy of the model config.
+
+Use `python3 scripts/testing/export_model.py -h` for parameter usage.
+
+Example:
+```bash
+python3 scripts/testing/export_model.py --input_type image_tensor --pipeline_config_path models/faster_rcnn_resnet50_v1_640x640_coco17_tpu-8/pipeline.config --trained_checkpoint_dir models/faster_rcnn_resnet50_v1_640x640_coco17_tpu-8/ --output_directory exported-models/faster_rcnn_
+```
+
+
 ### Running Test Images on Pre-Trained Object Detectors
 
 Use and configure this script to run a sample, pre-trained object detection model on test images.
 
 ```bash
-python3 scripts/test_sample.py
+python3 scripts/testing/test_sample.py
 ```
 
 ### Running Apple Test Image on Custom Object Detector
@@ -85,5 +140,5 @@ python3 scripts/test_sample.py
 Use and configure this script to run a custom object detection model on the test image `apple001S(1).JPG` in the ECUSTFD dataset.
 
 ```bash
-python3 scripts/test_apple.py
+python3 scripts/testing/test_apple.py
 ```
