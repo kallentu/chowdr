@@ -1,9 +1,7 @@
-
 from PIL import Image
 import numpy as np
 import cv2 as cv
 import math
-
 
 COIN_WIDTH = 2.5
 
@@ -52,7 +50,7 @@ FOOD_SHAPE = {
   'tomato' : 'ellipsoid'
 }
 
-# TODO: Populate these values with empirical data that we come up with
+# Empirical scaling factors used to compensate for unique food volume proportions 
 FOOD_BETA = {
   'apple' : 1.0,
   'banana' : 1.0,
@@ -75,7 +73,8 @@ FOOD_BETA = {
   'tomato' : 1.0
 }
 
-FOOD_CALORIE = { 
+# Maps food type to calories per cm ^ 3
+FOOD_UNIT_CALORIE = { 
   'apple' : 0.4056,
   'banana' : 0.8099,
   'bread' : 0.567,
@@ -104,16 +103,7 @@ def get_dimensions(bounding_box, width, height):
   object_height_px = (ymax - ymin) * height
   return object_width_px, object_height_px
 
-# Take in 2 images: Side view, Top view
-# Variables Required
-# Side view: width, height of coin
-# Top view: width, height of coin
-
-# Grabcut pixel counts
-# - Sideview from the bottom layer to the top layer
-# - Topview from the bottom layer to the top layer s_T
-# - Sideview max length of sideview pixels + the sideview from bottom layer to the top layer
-
+# Convert an image stored as a numpy array into an opencv compatible one
 def np_to_cv(image_np):
   img = Image.fromarray(image_np, 'RGB')
   # img.save('np_img.png')
@@ -142,7 +132,7 @@ def get_foreground_pixels(image_np, bounding_box):
   img = img*mask2[:,:,np.newaxis]
   pil_img = Image.fromarray((img * 255).astype(np.uint8))
 
-  # pil_img.save('foreground.png')
+  # pil_img.save(f'foreground-{bounding_box}.png')
 
   # convert Image to black & white cv (1 colour channel)
   pixel_image = np.asarray(pil_img)[:,:,::-1].copy()
@@ -205,15 +195,13 @@ def compute_volume_with_grabcut(side_image_np,
         ret = ret + ((row_sum/max_row) ** 2)
     return ret
 
+  # Computing volume based on pixel count is outlined in this article: https://arxiv.org/pdf/1706.04062.pdf
   if FOOD_SHAPE[food_label] == 'ellipsoid':
-    # Compute squared pixel rows sum term (sum(Lks^2))
     return food_beta * math.pi / 4 * calc_L_s_k_squared() * (side_scaling_factor ** 3)
   elif FOOD_SHAPE[food_label] == 'column':
-    # Compute pixel rows sum term (s_T = sum(L^k_T))
     H_s = top_image_foreground_pixels.shape[0]
     return food_beta * (calc_s_T() * top_scaling_factor ** 2) * (H_s * side_scaling_factor)
   elif FOOD_SHAPE[food_label] == 'irregular':
-    # TODO: Determine volume of the irregular shape
     return food_beta * (calc_s_T() * top_scaling_factor ** 2) * calc_L_s_MAX_squared() * side_scaling_factor
   else:
     return 0.0
@@ -225,6 +213,7 @@ def get_measurements(image_np, coin_bounding_box, food_bounding_box):
   food_w_px, food_h_px = get_dimensions(food_bounding_box, image_width_px, image_height_px)
   return image_width_px, image_height_px, scaling_factor, food_w_px, food_h_px
 
+# <>_bounding_box must be in the format (y_min, x_min, y_max, x_max) 
 def compute_calories(side_image_np, 
                      top_image_np, 
                      food_side_bounding_box, 
@@ -238,15 +227,15 @@ def compute_calories(side_image_np,
     get_measurements(side_image_np, coin_side_bounding_box, food_side_bounding_box)
   top_image_width_px, top_image_height_px, top_scaling_factor, food_top_width_px, food_top_height_px = \
     get_measurements(top_image_np, coin_top_bounding_box, food_top_bounding_box)                                                                             
-  
+
   # compute bounds for foods
-  food_side_bounds = (int(food_side_bounding_box[0] * side_image_width_px), \
-                      int(food_side_bounding_box[1] * side_image_height_px), \
+  food_side_bounds = (int(food_side_bounding_box[1] * side_image_width_px), \
+                      int(food_side_bounding_box[0] * side_image_height_px), \
                       int(food_side_width_px), \
                       int(food_side_height_px))
 
-  food_top_bounds = (int(food_top_bounding_box[0] * top_image_width_px), \
-                     int(food_top_bounding_box[1] * top_image_height_px), \
+  food_top_bounds = (int(food_top_bounding_box[1] * top_image_width_px), \
+                     int(food_top_bounding_box[0] * top_image_height_px), \
                      int(food_top_width_px), \
                      int(food_top_height_px))
 
@@ -260,59 +249,4 @@ def compute_calories(side_image_np,
                                        food_label)
 
   # compute calories
-  return volume * FOOD_CALORIE[food_label]
-
-
-
-def test():
-  # helper functions for test
-  def load_image_into_numpy_array(path, w, h):
-    import tensorflow as tf
-    from six import BytesIO
-    """Load an image from file into a numpy array.
-
-    Puts image into numpy array to feed into tensorflow graph.
-    Note that by convention we put it into a numpy array with shape
-    (height, width, channels), where channels=3 for RGB.
-
-    Args:
-      path: the file path to the image
-
-    Returns:
-      uint8 numpy array with shape (img_height, img_width, 3)
-    """
-    image = None
-    if(path.startswith('http')):
-      response = urlopen(path)
-      image_data = response.read()
-      image_data = BytesIO(image_data)
-      image = Image.open(image_data)
-    else:
-      image_data = tf.io.gfile.GFile(path, 'rb').read()
-      image = Image.open(BytesIO(image_data))
-
-    bsize = [w, h]
-    image.thumbnail(bsize, Image.ANTIALIAS)
-    (im_width, im_height) = image.size
-    print("Resized Width {}  Height {}".format(im_width, im_height))
-    return np.array(image.getdata()).reshape(
-        (1, im_height, im_width, 3)).astype(np.uint8)
-
-  from matplotlib.image import imread
-  
-  # create numpy image
-  w, h = 800, 600
-  side_image_np = load_image_into_numpy_array('scripts/testing/testdata/grabcut-result-apple.png', w, h)[0]
-  top_image_np = load_image_into_numpy_array('scripts/testing/testdata/grabcut-result-apple.png', w, h)[0]
-
-  food_side_bounding_box = (0.1, 0.1, 0.6, 0.6)
-  food_top_bounding_box = (0.1, 0.1, 0.9, 0.9)
-
-  coin_side_bounding_box = (0.1, 0.1, 0.2, 0.2)
-  coin_top_bounding_box = (0.1, 0.1, 0.2, 0.2)
-
-  food_label = 'apple'
-
-  # get_foreground_pixels(side_image_np[0], (10,10,60,60))
-  # compute_volume_with_grabcut(side_image_np, top_image_np, (300, 200, 200, 200), (300, 200, 200, 200), 5, 5, 'apple')
-  compute_calories(side_image_np, top_image_np, food_side_bounding_box, food_top_bounding_box, coin_side_bounding_box, coin_top_bounding_box, food_label)
+  return volume * FOOD_UNIT_CALORIE[food_label]

@@ -136,11 +136,11 @@ python3 scripts/testing/test_sample.py
 
 ### Running The Calorie Detector With A Test Image
 
-Use this script to use our custom object detection model on a specified test image. -i Defaults to `data/apple001S(1).JPG` from the ECUSTFD dataset.
+Use this script to use our custom object detection model on a specified pair of test images. -s defaults to `data/apple001S(1).JPG` and -t defaults to `data/apple001T(1).JPG`.
 
 Specify two input images:
 ```bash
-python3 scripts/testing/compute_calories.py -s <side view image path> -t <top view image path>
+python3 scripts/testing/calorie_detector.py -s <side view image path> -t <top view image path>
 ```
 
 Use `python3 scripts/testing/calorie_detector.py -h` for parameter usage.

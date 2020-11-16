@@ -177,6 +177,8 @@ def get_calories(ai, image_path_s, image_path_t):
 
   bounding_boxes_s, box_to_label_s = get_bounding_boxes(inference_results_s)
   bounding_boxes_t, box_to_label_t = get_bounding_boxes(inference_results_t)
+  print(box_to_label_s)
+  print(box_to_label_t)
 
   visualize_result(image_np_s, inference_results_s, image_path_s + '-detected.png')
   visualize_result(image_np_t, inference_results_t, image_path_t + '-detected.png')
