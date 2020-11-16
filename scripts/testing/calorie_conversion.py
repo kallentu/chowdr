@@ -1,9 +1,10 @@
 import math
-from usda import UsdaClient
+import matplotlib.pyplot as plt
+import numpy as np
+import cv2 as cv
+from PIL import Image
 
-client = UsdaClient('NIgQPVwVjH8xEkL3hzcBYZqJh4aW1lT89owwvmwT')
-
-FOOD_LABELS = { 
+FOOD_LABELS = {
     'apple',
     'banana',
     'bread',
@@ -41,12 +42,26 @@ FOOD_BETA = {
   'bread' : 1.0,
 }
 
-# TODO: Add real calorie/cm^3 for each item or use USDA
-FOOD_CALORIE = {
-    'apple' : 0.21,
-    'pear' : 3,
-    'banana' : 3,
-    'bread' : 3,
+FOOD_CALORIE = { 
+  'apple':0.4056,
+  'banana':0.8099,
+  'bread':0.567,
+  'bun':0.7582,
+  'doughnut':1.3454,
+  'egg':1.4729,
+  'fired_dough_twist':14.0128,
+  'grape':0.6693,
+  'lemon':0.2784,
+  'litchi':0.66,
+  'mango':0.642,
+  'mooncake':18.0768,
+  'orange':0.567,
+  'peach':0.5472,
+  'pear':0.3978,
+  'plum':0.4646,
+  'qiwi':0.5917,
+  'sachima':4.719,
+  'tomato':0.2646 
 }
 
 # Real width of the coin in cm
@@ -59,10 +74,8 @@ def get_dimensions(bounding_box, width, height):
   object_height_px = (ymax - ymin) * height
   return object_width_px, object_height_px
 
-
 # given type of object and dimensions, compute the volume (ellipsoid, cylinder, irregular) 
 # return a float value
-# TODO: Use pixel counts for possibly better accuracy
 def compute_volume_geometrically(food_label, width, height):
   if FOOD_SHAPE[food_label] == 'ellipsoid':
     return FOOD_BETA[food_label] * 4/3 * math.pi * width/2 * width/2 * height/2
@@ -76,53 +89,49 @@ def compute_volume_geometrically(food_label, width, height):
   else:
     return 0.0
 
-# TODO: Use grabcut to do a pixel count to determine food volume
-#def compute_volume_with_grab_cut():
 
-# TODO: Resolve issue where we must access the USDA API through https
-# def get_unit_calorie_using_usda(food_label):
-#   food_id = next(client.search_foods(food_label, 1)).id
-#   food_info = client.get_food_report(food_id)
-#   print(food_info.nutrients)
-#   print(f"USDA Food: {food_info.food.name}, Calories: {food_info.nutrient[calores].value}")
-#   calories = food_info['calories']
-#   return 1
-  # get the calorie per cm^3 from this 
+def compute_volume_with_grabcut(img, rect, food_label, alpha):
+  clone_img = img.copy()
 
-def get_calories(food_label, volume):
-  return FOOD_CALORIE[food_label] * volume
-  # TODO: use USDA's guide to calculate food calorie
-  #  problem: calories & other nutritional facts are based on mass, not volume.
-  #  and for apple, I had to manually calculate the calorie count based on a reference
-  # return get_unit_calorie_using_usda(food_label) * volume
+  mask = np.zeros(clone_img.shape[:2],np.uint8)
+  bgdModel = np.zeros((1,65),np.float64)
+  fgdModel = np.zeros((1,65),np.float64)
 
-# take in a bounding box for all detected objects
-# return a float value
-def compute_calories(bounding_boxes, box_to_label, image_width_px, image_height_px):
-  # pick the coin highest confidence %
-  coin_box = None
-  food_box = None
-  food_label = None
+  cv.grabCut(clone_img,mask,rect,bgdModel,fgdModel,5,cv.GC_INIT_WITH_RECT)
 
-  for box in bounding_boxes:
-    if box_to_label[box] == 'coin':
-      coin_box = box
-      break
-  
-  if not coin_box:
-    return -1
+  mask2 = np.where((mask==2)|(mask==0),0,1).astype('uint8')
+  clone_img = clone_img*mask2[:,:,np.newaxis]
+  im = Image.fromarray((clone_img * 255).astype(np.uint8))
+  im.save('temp.png')
 
-  # pick the food item with the highest confidence %
-  # bounding_boxes are sorted in order of highest confidence first  
-  for box in bounding_boxes:
-    label = box_to_label[box]
-    if label in FOOD_LABELS:
-      food_box = box
-      food_label = label
-      break
-  
-  if not food_box or not food_label:
-    return -1
+  pixel_image = cv.imread('temp.png',0)
+  coloured_pixel = cv.countNonZero(pixel_image)
+  print(f'coloured pixels:{coloured_pixel}')
+
+
+  if FOOD_SHAPE[food_label] == 'ellipsoid':
+    # Compute squared pixel rows sum term (sum(Lks^2))
+    squared_pixel_rows_sum = 0
+    for row in pixel_image:
+        row_sum = 0
+        for pixel_val in row:
+            if pixel_val != 0:
+                row_sum = row_sum + 1
+        squared_pixel_rows_sum = squared_pixel_rows_sum + ((row_sum/2) ** 2) * math.pi * (alpha ** 3)
+    return FOOD_BETA[food_label] * squared_pixel_rows_sum 
+  elif FOOD_SHAPE[food_label] == 'column':
+    # TODO: Determine volume of column
+    return 0.0
+  elif FOOD_SHAPE[food_label] == 'irregular':
+    # TODO: Determine volume of the irregular shape
+    return 0.0
+  else:
+    return 0.0
+
+
+def compute_calories(image_path, coin_box, food_box, food_label):
+  img = cv.imread(image_path)
+  image_height_px, image_width_px, _ = img.shape
   
   # compute the scaling factor with the dimensions of the coin and the image
   coin_width_px, coin_height_px = get_dimensions(coin_box, image_width_px, image_height_px)
@@ -132,32 +141,16 @@ def compute_calories(bounding_boxes, box_to_label, image_width_px, image_height_
   # use scaling factor to determine the dimensions of the food
   food_width_px, food_height_px = get_dimensions(food_box, image_width_px, image_height_px)
 
-  food_width = food_width_px * scaling_factor
-  food_height = food_height_px * scaling_factor
-
   # compute volume with the dimensions of the food and type of food
-  volume = compute_volume_geometrically(food_label, food_width, food_height)
+  # food_width = food_width_px * scaling_factor
+  # food_height = food_height_px * scaling_factor
+  # volume = compute_volume_geometrically(food_label, food_width, food_height)
+
+  # compute volume with grabcut & pixel counts
+  bounds = (int(food_box[0] * image_width_px), int(food_box[1] * image_height_px), int(food_width_px), int(food_height_px))
+  volume = compute_volume_with_grabcut(img, bounds, food_label, scaling_factor) 
+  print(f'volume: {volume}')
 
   # compute calories given volume and type of food
-  calories = get_calories(food_label, volume)
+  calories = FOOD_CALORIE[food_label] * volume
   return food_label, calories
-
-
-def test():
-  boxes_list_test = [
-    (0.6185794472694397, 0.23970480263233185, 0.7193066477775574, 0.3143535256385803), 
-    (0.4142831861972809, 0.3997975289821625, 0.729759693145752, 0.6652837991714478)
-  ]
-
-  box_to_label_test = {
-    (0.6185794472694397, 0.23970480263233185, 0.7193066477775574, 0.3143535256385803): 'coin', 
-    (0.4142831861972809, 0.3997975289821625, 0.729759693145752, 0.6652837991714478): 'apple'
-  }
-
-  cal = compute_calories(boxes_list_test, box_to_label_test, 640, 432)
-  print("Calories", cal)
-
-  if cal[0] != 'apple':
-    print(f'Test Failed. Expected \'apple\' but got {cal[0]}')
-  if cal[1] != 71.08249676475752:
-    print(f'Test Failed. Expected 71.08249676475752 but got {cal[0]}')

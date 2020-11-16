@@ -21,7 +21,7 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as viz_utils
 from object_detection.utils import ops as utils_ops
 
-from calorie_conversion import compute_calories
+from calorie_conversion import compute_calories, compute_volume_with_grabcut, FOOD_LABELS
 
 
 # Set up tensorflow
@@ -29,11 +29,11 @@ tf.get_logger().setLevel('ERROR')
 
 # Global declarations
 TRAINED_MODELS = {
-  'ssd-640' : "workspace/training_demo/exported-models/bestest_boi_so_far/saved_model/"
+  'ssd-640' : "workspace/training_demo/exported-models/faster_fold1_boi/saved_model/"
 }
 
 # Labels for image objects
-PATH_TO_LABELS = 'workspace/training_demo/exported-models/bestest_boi_so_far/label_map.pbtxt'
+PATH_TO_LABELS = 'workspace/training_demo/exported-models/faster_fold1_boi/label_map.pbtxt'
 
 COCO17_HUMAN_POSE_KEYPOINTS = [(0, 1),
  (0, 2),
@@ -57,7 +57,7 @@ COCO17_HUMAN_POSE_KEYPOINTS = [(0, 1),
 category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
 
 ## AI Class
-# Loads the model and performs inference from the model
+# Allows up to load up the model model once be able to call inference multiple times
 class ObjectDetectorAI:
   def __init__(self, selected_model): # @param ['ssd-640']
     global TRAINED_MODELS
@@ -69,7 +69,6 @@ class ObjectDetectorAI:
 
   def run_inference(self, image_np):
     return self.hub_model(image_np)
-
 
 def load_image_into_numpy_array(path):
   """Load an image from file into a numpy array.
@@ -108,7 +107,6 @@ def visualize_result(image_np, results, output_file):
   # different object detection models have additional results
   # all of them are explained in the documentation
   result = {key:value.numpy() for key,value in results.items()}
-  print(result.keys())
 
   label_id_offset = 0
 
@@ -138,28 +136,25 @@ def visualize_result(image_np, results, output_file):
   plt.imshow(image_np_with_detections[0])
   plt.savefig(output_file)
 
-def get_bounding_boxes(results):
+# Returning all bounding boxes where the confidence is > confidence_threshold 
+def get_bounding_boxes(results, confidence_threshold = 0.5):
   # different object detection models have additional results
   # all of them are explained in the documentation
   result = {key:value.numpy() for key,value in results.items()}
-  print(result.keys())
 
-  # See what the object is
-  print('detection_boxes')
+  # Get information for the objects
   result['detection_boxes'][0].shape
   boxes = result['detection_boxes'][0]
   scores = result['detection_scores'][0]
   classes = result['detection_classes'][0]
-  min_score_thresh = 0.5
   
   # Get the boxes and box labels
   box_list = []
   box_to_label = {}
 
   for i in range(boxes.shape[0]):
-    if scores is None or scores[i] > min_score_thresh:
+    if scores is None or scores[i] > confidence_threshold:
       box = tuple(boxes[i].tolist())  
-      print("box", i, ":", box)
       box_list.append(box)
 
       display_str = ''
@@ -172,19 +167,38 @@ def get_bounding_boxes(results):
   
   return box_list, box_to_label
 
-def load_ai():
-  return ObjectDetectorAI('ssd-640')
-
 def get_calories(ai, image_path):
+  # Load numpy array
   image_np, width, height = load_image_into_numpy_array(image_path)
 
+  # Run inference
   inference_results = ai.run_inference(image_np)
 
-  boxes_list, box_to_label = get_bounding_boxes(inference_results)
+  boxes_list, box_to_label = get_bounding_boxes(inference_results, 0.4)
 
   visualize_result(image_np, inference_results, image_path + '-detected.png')
 
-  return compute_calories(boxes_list, box_to_label, width, height)
+  food_calorie_list = {}
+  coin_box = None
+
+  for box in boxes_list:
+    if box_to_label[box] == 'coin':
+      coin_box = box
+      break
+  
+  if coin_box:
+    for box in boxes_list:
+      food_label = box_to_label[box]
+      if food_label in FOOD_LABELS:
+        food_box = box
+        
+        if food_box:
+          print(f'food label: {food_label}, food box: {food_box}')
+          food_calorie_list[food_label] = compute_calories(image_path, coin_box, food_box, food_label)
+  else:
+    print('<<<<<   o;   No coin detected in the photo   ;o   >>>>>')
+  
+  return food_calorie_list
 
 def main():
   # Parse input
@@ -194,22 +208,19 @@ def main():
     '-i', '--imagePath',
     help='Name of the image being used.',
     type=str,
-    default=os.getcwd()
+    default='data/apple001S(1).jpg' 
   )
   args = parser.parse_args()
 
-  # Get image path, set default
-  image_path = 'data/apple001S(1).jpg' 
-
   if args.imagePath:
     image_path = args.imagePath
-    
+  
   # Load model
-  ai = load_ai()
+  ai = ObjectDetectorAI('ssd-640')
 
   # Perform inference, compute calories and visualize the result
-  food_label, calories = get_calories(ai, image_path)
-  print(f'Food: {food_label}, Calories: {calories}')
+  food_calories_list = get_calories(ai, image_path)
+  print(f'Results: {food_calories_list}')
 
 if __name__ == '__main__':
   main()
