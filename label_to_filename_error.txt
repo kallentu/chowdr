@@ -1,0 +1,1 @@
+{"apple": {}, "banana": {"banana001": -0.0947759484871517, "banana002": -0.11551149568289631, "banana003": 0.2990360557471096}, "bread": {}, "bun": {}, "doughnut": {}, "egg": {}, "fired dough twist": {}, "grape": {}, "lemon": {}, "litchi": {}, "mango": {}, "mooncake": {}, "orange": {}, "peach": {}, "pear": {}, "plum": {}, "qiwi": {}, "sachima": {}, "tomato": {}}
