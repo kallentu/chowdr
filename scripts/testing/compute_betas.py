@@ -27,6 +27,8 @@ FOOD_LABEL_NAMES = [
   'tomato',
 ]
 
+ROOT_DIR = 'scripts/testing/data/'
+
 def get_volume_measurements(ai, image_path_s, image_path_t):
   # Load numpy arrays
   image_np_s = load_image_into_numpy_array(image_path_s)
@@ -159,15 +161,15 @@ def output_measurements():
   ai = ObjectDetectorAI('ssd-640')
 
   label_to_filenames, real_label_to_filename_volume, real_label_to_average = get_actual_volumes()
-  with open('real_label_to_filename_volume.txt', 'w') as outfile:
+  with open(f'{ROOT_DIR}real_label_to_filename_volume.txt', 'w') as outfile:
     json.dump(real_label_to_filename_volume, outfile)
-  with open('real_label_to_average.txt', 'w') as outfile:
+  with open(f'{ROOT_DIR}real_label_to_average.txt', 'w') as outfile:
     json.dump(real_label_to_average, outfile)
 
   measured_label_to_filename_volume, measured_label_to_average = estimate_volumes(ai, label_to_filenames)
-  with open('measured_label_to_filename_volume.txt', 'w') as outfile:
+  with open(f'{ROOT_DIR}measured_label_to_filename_volume_beta.txt', 'w') as outfile:
     json.dump(measured_label_to_filename_volume, outfile)
-  with open('measured_label_to_average.txt', 'w') as outfile:
+  with open(f'{ROOT_DIR}measured_label_to_average_beta.txt', 'w') as outfile:
     json.dump(measured_label_to_average, outfile)
 
 def print_volumes():
@@ -175,9 +177,9 @@ def print_volumes():
   measured_averages = None
   label_to_beta = {}
 
-  with open('real_label_to_average.txt') as infile:
+  with open(f'{ROOT_DIR}real_label_to_average.txt') as infile:
     real_averages = json.load(infile)
-  with open('measured_label_to_average.txt') as infile:
+  with open(f'{ROOT_DIR}measured_label_to_average.txt') as infile:
     measured_averages = json.load(infile)
 
   for food_label in real_averages:
@@ -241,15 +243,15 @@ def test_with_beta():
     print(label_to_average_error[label])
 
 
-  with open('label_to_filename_error.txt', 'w') as outfile:
+  with open(f'{ROOT_DIR}label_to_filename_error.txt', 'w') as outfile:
     json.dump(label_to_filename_error, outfile)
-  with open('label_to_average_error.txt', 'w') as outfile:
+  with open(f'{ROOT_DIR}label_to_average_error.txt', 'w') as outfile:
     json.dump(label_to_average_error, outfile)
 
   return label_to_filename_error, label_to_average_error
 
 def compute_average_errors():
-  with open('label_to_filename_error.txt') as infile:
+  with open(f'{ROOT_DIR}label_to_filename_error.txt') as infile:
     measured_errors = json.load(infile)
 
     avg_errors = {}
@@ -266,11 +268,39 @@ def compute_average_errors():
     for f in avg_errors:
       print(avg_errors[f])
 
+def compute_errors():
+  with open(f'{ROOT_DIR}real_label_to_filename_volume.txt') as infile:
+    real_volumes = json.load(infile)
+
+    with open(f'{ROOT_DIR}measured_label_to_filename_volume_beta.txt') as infile:
+      measured_volumes = json.load(infile)
+
+      avg_errors = {}
+      for label in real_volumes:
+        items = 0
+        total_error = 0
+        for label_file_name in real_volumes[label]:
+          if label_file_name in measured_volumes[label]:
+            items += 1
+            real_v = real_volumes[label][label_file_name]
+            measured_v = measured_volumes[label][label_file_name] 
+            total_error += abs((real_v - measured_v) / real_v)
+        
+        avg_errors[label] = total_error / items
+      
+      print('labels:')
+      for f in avg_errors:
+        print(f)
+      print('averages:')
+      for f in avg_errors:
+        print(avg_errors[f])
+
 def main():
   # output_measurements()
+  compute_errors()
   # print_volumes()
   # test_with_beta()
-  compute_average_errors()
+  # compute_average_errors()
 
 if __name__ == '__main__':
   main()
