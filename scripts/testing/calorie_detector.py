@@ -1,15 +1,4 @@
-# import os
-# import pathlib
-# import json
 import argparse
-
-# import matplotlib
-# import matplotlib.pyplot as plt
-
-# import io
-# import scipy.misc
-# import numpy as np
-# import six
 
 from detector_core import ObjectDetectorAI, load_image_into_numpy_array, get_bounding_boxes, visualize_result
 from estimate_calories_from_image import compute_volume, compute_calories, FOOD_LABELS
