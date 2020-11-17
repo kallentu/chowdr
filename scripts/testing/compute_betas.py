@@ -212,7 +212,7 @@ def test_with_beta():
     total_error = 0
     label_to_filename_error[label] = {}
     detected_images = 0
-    
+
     for filename in label_to_filenames[label]:
       real_volume = real_label_to_filename_volume[label][filename]
       filename_file_path = filename.replace(' ', '_')
@@ -228,7 +228,7 @@ def test_with_beta():
         volume = label_to_volume[label]
         error = (real_volume - volume) / real_volume
         label_to_filename_error[label][filename] = error
-        total_error += error
+        total_error += abs(error)
         detected_images += 1
       
       label_to_average_error[label] = total_error / detected_images
@@ -248,12 +248,29 @@ def test_with_beta():
 
   return label_to_filename_error, label_to_average_error
 
+def compute_average_errors():
+  with open('label_to_filename_error.txt') as infile:
+    measured_errors = json.load(infile)
+
+    avg_errors = {}
+    for label in measured_errors:
+      total_error = 0
+      for name in measured_errors[label]:
+        total_error += abs(measured_errors[label][name])
+      avg_errors[label] = total_error / len(measured_errors[label])
+    
+    print('labels:')
+    for f in avg_errors:
+      print(f)
+    print('averages:')
+    for f in avg_errors:
+      print(avg_errors[f])
 
 def main():
   # output_measurements()
   # print_volumes()
-  test_with_beta()
-
+  # test_with_beta()
+  compute_average_errors()
 
 if __name__ == '__main__':
   main()
