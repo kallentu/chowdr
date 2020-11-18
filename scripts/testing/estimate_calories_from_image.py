@@ -10,9 +10,9 @@ FOOD_LABELS = {
     'banana',
     'bread',
     'bun',
-    'doughnut'
-    'egg'
-    'fried dough twist',
+    'doughnut',
+    'egg',
+    'fired dough twist',
     'grape',
     'lemon',
     'litchi',
@@ -35,7 +35,7 @@ FOOD_SHAPE = {
   'bun' : 'irregular',
   'doughnut' : 'irregular',
   'egg' : 'ellipsoid',
-  'fried dough twist' : 'irregular',
+  'fired dough twist' : 'irregular',
   'grape' : 'column',
   'lemon' : 'ellipsoid',
   'litchi' : 'irregular',
@@ -51,26 +51,48 @@ FOOD_SHAPE = {
 }
 
 # Empirical scaling factors used to compensate for unique food volume proportions 
+# FOOD_BETA = {
+#   'apple' : 1.0,
+#   'banana' : 1.0,
+#   'bread' : 1.0,
+#   'bun' : 1.0,
+#   'doughnut' : 1.0,
+#   'egg' : 1.0,
+#   'fired dough twist' : 1.0,
+#   'grape' : 1.0,
+#   'lemon' : 1.0,
+#   'litchi' : 1.0,
+#   'mango' : 1.0,
+#   'mooncake' : 1.0,
+#   'orange' : 1.0,
+#   'peach' : 1.0,
+#   'pear' : 1.0,
+#   'plum' : 1.0,
+#   'qiwi' : 1.0,
+#   'sachima' : 1.0,
+#   'tomato' : 1.0
+# }
+
 FOOD_BETA = {
-  'apple' : 1.0,
-  'banana' : 1.0,
-  'bread' : 1.0,
-  'bun' : 1.0,
-  'doughnut' : 1.0,
-  'egg' : 1.0,
-  'fried dough twist' : 1.0,
-  'grape' : 1.0,
-  'lemon' : 1.0,
-  'litchi' : 1.0,
-  'mango' : 1.0,
-  'mooncake' : 1.0,
-  'orange' : 1.0,
-  'peach' : 1.0,
-  'pear' : 1.0,
-  'plum' : 1.0,
-  'qiwi' : 1.0,
-  'sachima' : 1.0,
-  'tomato' : 1.0
+  'apple': 1.0243, 
+  'banana': 0.5861, 
+  'bread': 0.0824, 
+  'bun': 0.8368, 
+  'doughnut': 0.9022, 
+  'egg': 1.0176, 
+  'fired dough twist': 1.0671, 
+  'grape': 0.095, 
+  'lemon': 1.0251, 
+  'litchi': 0.8751, 
+  'mango': 0.9108, 
+  'mooncake': 0.1042, 
+  'orange': 0.9852, 
+  'peach': 0.9983, 
+  'pear': 0.9008, 
+  'plum': 1.1446, 
+  'qiwi': 1.0847, 
+  'sachima': 0.1549, 
+  'tomato': 1.1422
 }
 
 # Maps food type to calories per cm ^ 3
@@ -214,7 +236,7 @@ def get_measurements(image_np, coin_bounding_box, food_bounding_box):
   return image_width_px, image_height_px, scaling_factor, food_w_px, food_h_px
 
 # <>_bounding_box must be in the format (y_min, x_min, y_max, x_max) 
-def compute_calories(side_image_np, 
+def compute_volume(side_image_np, 
                      top_image_np, 
                      food_side_bounding_box, 
                      food_top_bounding_box, 
@@ -247,6 +269,8 @@ def compute_calories(side_image_np,
                                        side_scaling_factor, 
                                        top_scaling_factor,
                                        food_label)
-
+  return volume
+  
+def compute_calories(food_label, volume):
   # compute calories
   return volume * FOOD_UNIT_CALORIE[food_label]

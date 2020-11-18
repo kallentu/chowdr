@@ -4,7 +4,7 @@ import cv2 as cv
 
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from estimate_calories_from_image import compute_calories, compute_volume_with_grabcut, get_foreground_pixels
+from estimate_calories_from_image import compute_volume, compute_calories, compute_volume_with_grabcut, get_foreground_pixels
 
 def test():
   # helper functions for test
@@ -58,6 +58,7 @@ def test():
 
   # get_foreground_pixels(side_image_np[0], (10,10,60,60))
   # compute_volume_with_grabcut(side_image_np, top_image_np, (300, 200, 200, 200), (300, 200, 200, 200), 5, 5, 'apple')
-  compute_calories(side_image_np, top_image_np, food_side_bounding_box, food_top_bounding_box, coin_side_bounding_box, coin_top_bounding_box, food_label)
+  volume = compute_volume(side_image_np, top_image_np, food_side_bounding_box, food_top_bounding_box, coin_side_bounding_box, coin_top_bounding_box, food_label)
+  compute_calories(volume)
 
 test()
