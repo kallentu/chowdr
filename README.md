@@ -71,7 +71,7 @@ _Prerequisite:_ Finished **Set Up** section from above.
     Before we create TFRecords, we need a label map. We can use the same one in the `training_demo`.
     
     ```bash
-    cp workspace/training_demo/annotations/label_map.pbtxt workspace/train_0fold/annotations/label_map.pbtxt
+    cp workspace/annotations/label_map.pbtxt workspace/train_0fold/annotations/label_map.pbtxt
     ```
     
     Now that we have a label map, we can use it to generate the records required for training.
