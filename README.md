@@ -136,7 +136,7 @@ python3 scripts/testing/test_sample.py
 
 ### Running The Calorie Detector With A Test Image
 
-Use this script to use our custom object detection model on a specified pair of test images. -s defaults to `data/apple001S(1).JPG` and -t defaults to `data/apple001T(1).JPG`.
+Run this script to use our custom object detection model on a specified pair of test images. -s defaults to `data/apple001S(1).JPG` and -t defaults to `data/apple001T(1).JPG`.
 
 Specify two input images:
 ```bash
@@ -148,4 +148,34 @@ Use `python3 scripts/testing/calorie_detector.py -h` for parameter usage.
 Example:
 ```bash
 python3 scripts/testing/calorie_detector.py -s "data/apple001S(1).JPG" -t "data/apple001T(1).JPG"
+```
+
+This will output the following:
+<img width="1073" alt="command line output" src="https://user-images.githubusercontent.com/14525856/99302653-aad23e80-281d-11eb-9244-b4ad224282fc.png">
+Original images:
+
+<img width="300" alt="apples" src="https://user-images.githubusercontent.com/14525856/99470900-8d7f9c00-2913-11eb-8b35-5069fb6a6955.jpg">
+<img width="300" alt="applet" src="https://user-images.githubusercontent.com/14525856/99470902-8f495f80-2913-11eb-9a45-8885b7cb3fc4.jpg">
+
+Detected Images:
+
+<img width="300" alt="apples" src="https://user-images.githubusercontent.com/14525856/99315353-87fd5580-2830-11eb-9979-0f88fa7f3cc4.png">
+<img width="300" alt="applet" src="https://user-images.githubusercontent.com/14525856/99315359-89c71900-2830-11eb-8691-3d61a30eb847.png">
+
+Grabcut Results:
+
+<img width="300" alt="grabcut-result-apple-s" src="https://user-images.githubusercontent.com/14525856/99315454-aebb8c00-2830-11eb-8dc3-689c997c3b0c.png">
+<img width="300" alt="grabcut-result-apple-t" src="https://user-images.githubusercontent.com/14525856/99315459-af542280-2830-11eb-87cf-96358e902624.png">
+
+### Running Analysis Tools
+
+Use this script to perform analysis, estimations, error and beta computations across the entire ECUST dataset.
+
+Prerequisite, must clone ECUST dataset into ./datatset/
+```bash
+git clone git@github.com:Liang-yc/ECUSTFD-resized-.git ./dataset/
+```
+
+```bash
+python3 scripts/testing/compute_betas
 ```
