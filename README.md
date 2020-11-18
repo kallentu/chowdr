@@ -4,10 +4,14 @@ Food recognition and volume estimation to produce caloric data.
 chowdr will use a trained model on the base Faster R-CNN TensorFlow model to detect different food objects. Using this data, it estimates the volume of the food
 from the top and side views, then calculates the caloric amount of the food.
 
+_See the **Tutorial** for an end-to-end tutorial of training, testing, evaluating, and running the caloric estimator._
+
 
 ## Set Up
 
-1. Clone the ECUST food dataset into the directory above chowdr.
+1. Clone the chowdr repository.
+
+2. Clone the ECUST food dataset into the directory above chowdr.
 ```bash
 git clone https://github.com/Liang-yc/ECUSTFD-resized-.git ../
 ```
@@ -41,13 +45,92 @@ gcloud config set project $PROJECT_ID
 export GOOGLE_APPLICATION_CREDENTIALS=~/<key-name>.json
 ```
 
-Now you are ready to train/test using GCP. Look at the scripts below to help you.
+Now you are ready to train/test using GCP. Look at the scripts below to help you or follow the tutorial for training, evaluating, testing and using chowdr.
+
+# Tutorial
+
+_Prerequisite:_ Finished **Set Up** section from above.
+
+1.  **k-fold Cross Validation Pre-processing**
+
+    Assuming you have followed the initial set up for cloning the ECUSTFD repository, we will now pre-process the images with cross-validation k-folds.
+    This script will create folders in `/workspace/` for training and testing on `k` folds. Run **all** scripts in the main directory of the chowdr repository.
+    Let's do a 3-fold cross validation!
+
+    ```bash
+    python3 scripts/preprocessing/kfold_partition_dataset.py -i ../ECUSTFD-resized-/JPEGImages/ -o workspace/ -k 3 -x
+    ```
+    
+2.  **Generating TensorFlow Records**
+    
+    Since we also generated the XML files for the images using the above script's `-x` option, we will convert these into TFRecords that can be piped into the Tensorflow model.
+    The training and testing XMLs will be located in the folders created for each fold (ie. `/workspace/train_0fold` and `/workspace/test_0fold`). 
+    
+    For the sake of this tutorial, we will focus on fold 0, but feel free to train and test similarly on other folds.
+    
+    Before we create TFRecords, we need a label map. We can use the same one in the `training_demo`.
+    
+    ```bash
+    cp workspace/training_demo/annotations/label_map.pbtxt workspace/train_0fold/annotations/label_map.pbtxt
+    ```
+    
+    Now that we have a label map, we can use it to generate the records required for training.
+    
+    ```bash
+    python scripts/preprocessing/generate_tfrecord.py -x workspace/train_0fold -l workspace/train_0fold/annotations/label_map.pbtxt -o workspace/train_0fold/annotations/train0.record
+    ```
+    
+3.  **Training a SSD Model**
+
+    We have already added a pre-trained model with the chowdr repository. We will use this as the foundation for our custom object detection model.
+
+    ```bash
+    mkdir workspace/train_0fold/models
+    mkdir workspace/train_0fold/models/ssd
+    cp pre-trained-models/ssd-mobilenet-v2-fpnlite-640/pipeline.config workspace/train_0fold/models/ssd/pipeline.config
+    ```
+    
+    Within the `workspace/train_0fold/models/ssd` directory, we will copy the `pipeline.config` from the `training_demo` directory and change certain lines.
+    
+    ```
+      # ... At the bottom of the file
+      fine_tune_checkpoint: "pre-trained-models/ssd-mobilenet-v2-fpnlite-640/checkpoint/ckpt-0" # Path to pre-trained model checkpoint
+      # ...
+    }
+    train_input_reader {
+      label_map_path: "workspace/train_0fold/annotations/label_map.pbtxt"   # Path to label map
+      tf_record_input_reader {
+        input_path: "workspace/train_0fold/annotations/train0.record"       # Path to fold 0 training TFRecord
+      }
+    }
+    eval_config {
+      metrics_set: "coco_detection_metrics"
+      use_moving_averages: false
+    }
+    eval_input_reader {
+      label_map_path: "workspace/test_0fold/annotations/label_map.pbtxt"   # Path to label map
+      shuffle: false
+      num_epochs: 1
+      tf_record_input_reader {
+        input_path: "workspace/test_0fold/annotations/test0.record"        # Path to fold 0 test TFRecord
+      }
+    }
+      
+    ```
+    
+    Then we are ready to run the training. This job may take a while and outputs once every 100 steps by default.
+    
+    ```bash
+    python3 scripts/training/create_run_model.py --model_dir=workspace/train_0fold/models/ssd --pipeline_config_path=workspace/train_0fold/models/ssd/pipeline.config
+    ```
+    
+    
 
 ## Pre-processing Scripts
 
 All scripts are run from the main directory.
 
-### Splitting images into k-folds for cross validation.
+### Splitting Images Into k-folds for Cross Validation.
 
 Will split the ECUSTFD images into `train` and `test` folders in the output directory (`/workspace/`) for
 cross validation training on k-folds.
