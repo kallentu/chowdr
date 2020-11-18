@@ -125,6 +125,41 @@ _Prerequisite:_ Finished **Set Up** section from above.
     ```
     
     
+4.  **Evaluating the Trained Model**
+    
+    Next, we will run an evaluation on the trained model. This will test us the prediction accuracy of the model on the test dataset.
+    
+    To do this, we use the same command, with a checkpoint directory parameter.
+    
+    ```bash
+    python3 scripts/training/create_run_model.py --model_dir=workspace/train_0fold/models/ssd --pipeline_config_path=workspace/train_0fold/models/ssd/pipeline.config --checkpoint_dir=workspace/train_0fold/models/ssd
+    ```
+    
+    Running the script should generate a similar output:
+    
+    ```
+     Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.786
+     Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.945
+     Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.942
+     Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.006
+     Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.596
+     Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.814
+     Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.815
+     Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.816
+     Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.816
+     Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.000
+     Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.670
+     Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.858
+    ```
+    
+5.  **Exporting the Trained Model**
+
+    Now we want to export the trained model into a `.pb` file.
+    
+    ```
+    mkdir exported-models
+    python3 scripts/testing/export_model.py --input_type image_tensor --pipeline_config_path workspace/train_0fold/models/ssd/pipeline.config --trained_checkpoint_dir workspace/train_0fold/models/ssd --output_directory workspace/exported-models/ssd_fold0
+    
 
 ## Pre-processing Scripts
 
@@ -197,7 +232,7 @@ Use `python3 scripts/training/create_run_model.py -h` for parameter usage.
 
 Example:
 ```bash
-python3 scripts/training/create_run_model.py --model_dir=models/faster_rcnn_0 --pipeline_config_path=models/faster_rcnn_0/pipeline.config
+python3 scripts/training/create_run_model.py --model_dir=models/faster_rcnn_0 --pipeline_config_path=models/faster_rcnn_0/pipeline.config --checkpoint_dir=models/faster_rcnn_0
 ```
 
 ### Export an Object Detection Model for Inference.
